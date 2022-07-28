@@ -8,7 +8,9 @@ if arduino.is_open:
     print('Serial port to arduino is open')
 else:
     print('Serial port has failed to open')
-stop()
+    
+
+
 '''
 motor order/layout
 idx0 -> front right (fr)
@@ -24,6 +26,14 @@ def test():
         arduino.write(mtrs)
         time.sleep(.5)
 
+def forward(gains):
+    drive([1,1,1,1],gains)
+
+def left(gains):
+    drive([0,1,0,1],gains)
+    
+def right(gains):
+    drive([1,0,1,0],gains)
 
 def stop():
     mtrs = np.array([0, 0, 0, 0, 0, 0, 0, 0, 255], dtype=np.uint8)
@@ -46,6 +56,9 @@ def drive(signs, gains):
     mtrs[8] = 255
     print(mtrs)
     arduino.write(mtrs)
+
+stop()
+time.sleep(2)
 
 '''
 drive([1, 1, 1, 1], [254, 254, 254, 254])

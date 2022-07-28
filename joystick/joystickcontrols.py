@@ -61,7 +61,7 @@ event_lut = {
 while True:
     events = inputs.get_gamepad()
     for event in events:
-        # print(event.ev_type, event.code, event.state)
+        print(event.ev_type, event.code, event.state)
         f_call = event_lut.get(event.code)
         if callable(f_call):
             f_call(event.state)
