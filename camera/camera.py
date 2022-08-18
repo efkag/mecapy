@@ -18,23 +18,23 @@ if cam.isOpened():
 else:
 	raise RuntimeError('Camera is off')
 
-def read_frame():
-	ret, frame = cam.read()
-	return frame if ret else None
+def read_frame(unwrapImage=True):
+    ret, frame = cam.read()
+    if unwrapImage:
+        frame=unwrap(frame)
+    return frame if ret else None
 
 
 def record_frame(foldername,unwrapImage=True):
-    frame = read_frame()
-    if unwrapImage:
-        frame=unwrap(frame)
+    frame = read_frame(unwrapImage)
     folder=os.path.join(dir_path,foldername)
-    number_files=len(os.listdir(folder))
     
     if not os.path.exists(folder):
         os.makedirs(folder)
-    
-    filename=foldername+'/test'+str(number_files+1)
-    cv.imwrite(filename+'.png', frame)
+
+    number_files=len(os.listdir(folder))
+    filename=folder+'\\test'+str(number_files+1)+'.png'
+    cv.imwrite(filename, frame)
     return(filename)
 
 def unwrap(imgIn):
@@ -88,4 +88,3 @@ def unwrap(imgIn):
 
     return result
 
-record_frame('images',unwrapImage=True)
