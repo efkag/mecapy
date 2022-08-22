@@ -15,18 +15,24 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 if cam.isOpened():
 	print('Camera is open')
+    
 else:
 	raise RuntimeError('Camera is off')
 
-def read_frame(unwrapImage=True):
+def read_frame():
     ret, frame = cam.read()
-    if unwrapImage:
-        frame=unwrap(frame)
     return frame if ret else None
 
+def processForSending(frame):
+    frame=unwrap(frame)
+    frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+    frame=cv.resize(frame,(500,200))
+    return(frame)
 
-def record_frame(foldername,unwrapImage=True):
-    frame = read_frame(unwrapImage)
+def record_frame(foldername,saveOriginal=False):
+    frame = read_frame()
+    if saveOriginal==False:
+        frame = processForSending(frame)
     folder=os.path.join(dir_path,foldername)
     
     if not os.path.exists(folder):
@@ -38,8 +44,6 @@ def record_frame(foldername,unwrapImage=True):
     return(filename)
 
 def unwrap(imgIn):
-    
-        
     #MAPPING
     def buildMap(Wd, Hd, R, Cx, Cy):
                     
@@ -59,7 +63,6 @@ def unwrap(imgIn):
     def unwarp(img, xmap, ymap):
         output = cv.remap(img, xmap, ymap, cv.INTER_LINEAR)
         return output
-    
     
     img = imgIn
     
@@ -88,3 +91,8 @@ def unwrap(imgIn):
 
     return result
 
+
+#while True:
+#    ret, frame = cam.read()
+#    cv.imshow("frame",frame)
+#    cv.waitKey(1)

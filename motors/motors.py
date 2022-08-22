@@ -3,12 +3,21 @@ import serial
 import numpy as np
 import time
 
-arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, write_timeout=0)
-if arduino.is_open:
-    print('Serial port to arduino is open')
-else:
-    print('Serial port has failed to open')
-    
+open=False
+
+try:
+    arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, write_timeout=0)
+except:
+    open=False
+    pass
+
+if open:
+    if arduino.is_open:
+        print('Serial port to arduino is open')
+    else:
+        print('Serial port has failed to open, just printing outputs')
+        open=False
+        
 
 
 '''
@@ -23,8 +32,9 @@ def test():
     mtrs = np.array([1, 1, 1, 1, 0, 0, 254, 0, 255], dtype=np.uint8)
     arduino.write(mtrs)
     for i in range(10):
-        arduino.write(mtrs)
-        time.sleep(.5)
+        if open:
+            arduino.write(mtrs)
+            time.sleep(.5)
 
 def forward(gains):
     drive([1,1,1,1],gains)
@@ -37,7 +47,8 @@ def right(gains):
 
 def stop():
     mtrs = np.array([0, 0, 0, 0, 0, 0, 0, 0, 255], dtype=np.uint8)
-    arduino.write(mtrs)
+    if open:
+        arduino.write(mtrs)
 
 
 def validate_comands(a):
@@ -55,12 +66,14 @@ def drive(signs, gains):
     mtrs[4:8] = gains
     mtrs[8] = 255
     print(mtrs)
-    arduino.write(mtrs)
+    if open:
+        arduino.write(mtrs)
 
 stop()
 time.sleep(2)
 
 '''
+
 drive([1, 1, 1, 1], [254, 254, 254, 254])
 time.sleep(5)
 
