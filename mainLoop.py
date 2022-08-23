@@ -2,10 +2,10 @@ from ast import While
 from platform import release
 from socket import socket
 from threading import Thread
-from tkinter import W
 from typing import Tuple
 import cv2 as cv
 import numpy as np
+import inputs
 
 import time
 
@@ -16,16 +16,13 @@ import os
 import sys
 from comms import sender
 import time
-import cv2
-import inputs
-from inputs import get_key
+
 from queue import Queue
 
-from inputs import devices
-from pynput import keyboard
+from MovementControl import keyboard
 
-from multiprocess import Process, Event
-from MovementControl import keyboardcontrols
+
+#from MovementControl import keyboardcontrols
 '''
 mode 0 = manual
     Press 'c' to capture images
@@ -47,14 +44,16 @@ if __name__=="__main__":
         q.put(k)
 
     def on_press(key):
+        print('pressed')
         write_keys(key,pressQueue)
 
     def on_release(key):
+        print('released')
         write_keys(key,releaseQueue)
 
     def checkCaptureShotCondition(captureShot,keysDown):
 
-        if 'c' in keysDown:
+        if 'KEY_C' in keysDown:
             captureShot=captureShot+1
 
         else:
@@ -66,7 +65,7 @@ if __name__=="__main__":
         try:
             res=q.get(block=False)
         except:
-            res=None
+            res=set()
             pass
         
         return(res)
@@ -74,24 +73,16 @@ if __name__=="__main__":
     def mainloop():
         sendSocket,frameHolder=sender.createSocket()
         captureShot=0
-        keysDown={}
-        keysDown=set()
 
         movementState={'throttle':int(3000/2),'live':1}
         modes=['manual','train','test']
         experimentState={'live':1,'mode':modes.index(mode),'record':0}
 
         while True:
-            pressed=tryq(pressQueue)
-            released=tryq(releaseQueue)
-
-            if pressed!=None:
-                keysDown.add(pressed)
-            if released!=None:
-                keysDown.remove(released)
-
-            captureShot=checkCaptureShotCondition(captureShot,keysDown)
-            movementState=keyboardcontrols.action(keysDown,movementState)
+            keysDown=tryq(pressQueue)
+            if len(list(keysDown))!=0:
+                captureShot=checkCaptureShotCondition(captureShot,keysDown)
+                movementState=keyboard.action(keysDown,movementState)
 
             if movementState['live']==0:
                 # send one final image with the death signal
@@ -116,10 +107,26 @@ if __name__=="__main__":
     mode=sys.argv[1]
     #folder=sys.argv[2]
 
-    # Start threads - input libraries are often blocking
-    keyboardThread= keyboard.Listener(on_press=on_press,on_release=on_release)
-    keyboardThread.daemon=True
-    keyboardThread.start()
+    def keyinputLoop():
+        keysDown={}
+        keysDown=set()
+
+        while True:
+            events = inputs.get_key()
+            for event in events:
+                #print(event.ev_type, event.code, event.state)
+                if event.ev_type=='Key':
+                    if event.state!=0:
+                        keysDown.add(event.code)
+                    else:
+                        if event.code in keysDown:
+                            keysDown.remove(event.code)
+
+                pressQueue.put(keysDown)
+
+    keyinputThread=Thread(target=keyinputLoop)
+    keyinputThread.daemon=True
+    keyinputThread.start()
 
     main_thread=Thread(target=mainloop)
     main_thread.daemon=True
@@ -136,3 +143,7 @@ if __name__=="__main__":
             sys.exit()
 
 
+    # Start threads - input libraries are often blocking
+    #keyboardThread= keyboard.Listener(on_press=on_press,on_release=on_release)
+    #keyboardThread.daemon=True
+    #keyboardThread.start()

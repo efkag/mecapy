@@ -1,9 +1,7 @@
-from ssl import SSL_ERROR_WANT_WRITE
 import inputs
+from inputs import get_key
 import sys
 import numpy as np
-from pynput import keyboard
-from queue import Queue
 import os
 
 path = os.path.join(os.path.dirname(__file__), os.pardir)
@@ -11,6 +9,7 @@ fwd = os.path.dirname(__file__)
 sys.path.append(path)
 
 from motors import motors
+print(inputs.devices.keyboards)
 
 '''
 Default alternative to joystick incase there are issues - 
@@ -27,7 +26,7 @@ def Power(state,direction):
     if direction ==1:
         gain=int(np.interp(abs(state['throttle']), [0, 3000], [50, 254]))
         motors.forward([gain]*4)
-        #print('forward', state['throttle'])
+        print('forward', state['throttle'])
 
     else:
         print('not coded yet')
@@ -65,17 +64,31 @@ def ThrottleDown(state):
     state=throttle(state,-1)
     return(state)
 
+
 event_lut = {
-    'w': PowerForward,
-    'a' : TurnLeft,
-    'd' : TurnRight,
-    's' : PowerBack,
-    'Key.up':ThrottleUp,
-    'Key.down':ThrottleDown,
-    'x':kill_robot}
- 
+    'KEY_W': PowerForward,
+    'KEY_A' : TurnLeft,
+    'KEY_D' : TurnRight,
+    'KEY_S' : PowerBack,
+    'KEY_UP':ThrottleUp,
+    'KEY_DOWN':ThrottleDown,
+    'KEY_X':kill_robot}
+
+'''
+while True:
+    events = inputs.get_key()
+    print(len(events))
+    for event in events:
+        print(event.ev_type, event.code, event.state)
+        #f_call = event_lut.get(event.code)
+        #if callable(f_call):
+            #f_call(event.state)
+
+            '''
+
 def action(keysdown,movementState):
     for key in keysdown:
+        print(key)
         f_call=event_lut.get(key)
         if callable(f_call):
             movementState=f_call(movementState)
