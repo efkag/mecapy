@@ -1,5 +1,4 @@
 import inputs
-from inputs import get_key
 import sys
 import numpy as np
 import os
@@ -9,7 +8,7 @@ fwd = os.path.dirname(__file__)
 sys.path.append(path)
 
 from motors import motors
-print(inputs.devices.keyboards)
+
 
 '''
 Default alternative to joystick incase there are issues - 
@@ -74,22 +73,29 @@ event_lut = {
     'KEY_DOWN':ThrottleDown,
     'KEY_X':kill_robot}
 
+
+
+
+def action(keysdown,movementState):
+    #print(keysdown)
+    for key in keysdown:
+        f_call=event_lut.get(key)
+        if callable(f_call):
+            movementState=f_call(movementState)
+    return(movementState)
+    
 '''
+print(inputs.devices.keyboards) 
+# from this make sure to pick the right keyboard
+# can check events with 'libinput debug-events' in terminal
+keyboardIdx=1
 while True:
-    events = inputs.get_key()
+    events = inputs.get_key(keyboardIdx=keyboardIdx)
     print(len(events))
     for event in events:
         print(event.ev_type, event.code, event.state)
         #f_call = event_lut.get(event.code)
         #if callable(f_call):
             #f_call(event.state)
-
             '''
 
-def action(keysdown,movementState):
-    for key in keysdown:
-        print(key)
-        f_call=event_lut.get(key)
-        if callable(f_call):
-            movementState=f_call(movementState)
-    return(movementState)

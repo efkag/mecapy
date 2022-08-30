@@ -1,7 +1,10 @@
 from ast import While
 from platform import release
+from shutil import move
 from socket import socket
 from threading import Thread
+from timeit import timeit
+from tracemalloc import start
 from typing import Tuple
 import cv2 as cv
 import numpy as np
@@ -35,30 +38,16 @@ mode 2 = testing
 if __name__=="__main__":
     user_input='n'
 
-    pressQueue = Queue()
-    releaseQueue=Queue()
-    killQueue=Queue()
-
-    def write_keys(key,q):
-        k = str(key).replace(f'{chr(39)}', '')
-        q.put(k)
-
-    def on_press(key):
-        print('pressed')
-        write_keys(key,pressQueue)
-
-    def on_release(key):
-        print('released')
-        write_keys(key,releaseQueue)
+    keydownQ = Queue()
+    killQ=Queue()
+    frameQ=Queue()
+    movementStateQ=Queue()
 
     def checkCaptureShotCondition(captureShot,keysDown):
-
         if 'KEY_C' in keysDown:
             captureShot=captureShot+1
-
         else:
             captureShot=0
-
         return(captureShot)
 
     def tryq(q):
@@ -66,42 +55,57 @@ if __name__=="__main__":
             res=q.get(block=False)
         except:
             res=set()
+            res.add('n')
             pass
-        
         return(res)
 
     def mainloop():
         sendSocket,frameHolder=sender.createSocket()
         captureShot=0
 
-        movementState={'throttle':int(3000/2),'live':1}
+        
         modes=['manual','train','test']
         experimentState={'live':1,'mode':modes.index(mode),'record':0}
+        movementState={'throttle':int(3000/2),'live':1}
 
+        #time=0
         while True:
-            keysDown=tryq(pressQueue)
+            #z=timeit()
+            #time=(time+z)/2
+            #print(time)
+            newkeysDown=tryq(keydownQ)
+            if 'n' in newkeysDown:
+                keysDown=keysDown
+            else:
+                keysDown=newkeysDown
+            
+            #print(keysDown)
+
             if len(list(keysDown))!=0:
                 captureShot=checkCaptureShotCondition(captureShot,keysDown)
                 movementState=keyboard.action(keysDown,movementState)
 
-            if movementState['live']==0:
-                # send one final image with the death signal
-                experimentState['live']=0
-                sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-                killQueue.put(1)
-
-            frame=camera.read_frame()
-            #frame=np.random.rand(100,20)*255
-
-            if (mode=='manual' and captureShot==1) or (mode=='train'):
-                # stream and save image
-                experimentState['record']=1
-                sender.sendImage(sendSocket,frameHolder,frame,experimentState)
                 
-            else:
-                # just stream the images
-                experimentState['record']=0
-                sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+
+            if frameQ.empty()==False:
+                frame=frameQ.get(block=False)
+                
+
+                if movementState['live']==0:
+                    # send one final image with the death signal
+                    experimentState['live']=0
+                    #sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+                    killQ.put(1)
+
+                if (mode=='manual' and captureShot==1) or (mode=='train'):
+                    # stream and save image
+                    experimentState['record']=1
+                    #sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+                    
+                else:
+                    # just stream the images
+                    experimentState['record']=0
+                    #sender.sendImage(sendSocket,frameHolder,frame,experimentState)
 
 
     mode=sys.argv[1]
@@ -110,23 +114,42 @@ if __name__=="__main__":
     def keyinputLoop():
         keysDown={}
         keysDown=set()
+        
+        keydownQ.put(keysDown)
+
+        print(inputs.devices.keyboards) 
+        keyboardIdx=1
 
         while True:
-            events = inputs.get_key()
+            events = inputs.get_key(keyboardIdx=keyboardIdx)
+
+            #print(event.ev_type,event.code,event.state)
             for event in events:
                 #print(event.ev_type, event.code, event.state)
                 if event.ev_type=='Key':
+                    
                     if event.state!=0:
                         keysDown.add(event.code)
                     else:
                         if event.code in keysDown:
                             keysDown.remove(event.code)
+                            events=inputs.get_key()
+            keydownQ.put(keysDown)
 
-                pressQueue.put(keysDown)
+    def getCameraFrames():
+        while True:
+            frame=camera.read_frame()
+            #frame=np.random.rand(100,20)*255
+            frameQ.put(frame)
 
-    keyinputThread=Thread(target=keyinputLoop)
-    keyinputThread.daemon=True
-    keyinputThread.start()
+    def startThread(threadTarget):
+        thread=Thread(target=threadTarget)
+        thread.daemon=True
+        thread.start()
+        return(thread)
+
+    keyinputThread=startThread(keyinputLoop)
+    cameraThread=startThread(getCameraFrames)
 
     main_thread=Thread(target=mainloop)
     main_thread.daemon=True
@@ -134,7 +157,7 @@ if __name__=="__main__":
     
     while True:
         try:
-            k=killQueue.get()
+            k=killQ.get()
         except:
             k=0
             pass
@@ -142,8 +165,3 @@ if __name__=="__main__":
         if k==1:
             sys.exit()
 
-
-    # Start threads - input libraries are often blocking
-    #keyboardThread= keyboard.Listener(on_press=on_press,on_release=on_release)
-    #keyboardThread.daemon=True
-    #keyboardThread.start()
