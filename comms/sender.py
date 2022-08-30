@@ -61,7 +61,7 @@ def sendImage(s,fs,frame,experimentState):
         pass
 
 
-def createSocket(port=50000,addr="10.2.1.163"): #"192.168.1.89"
+def createSocket(port=50001,addr="192.168.1.14"): #"192.168.1.89"
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   
     s.setblocking(0)
     fs = FrameSegment(s, port,addr)

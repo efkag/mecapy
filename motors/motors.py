@@ -3,14 +3,15 @@ import serial
 import numpy as np
 import time
 
-open=False
+
 
 try:
     arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, write_timeout=0)
+    open=True
 except:
     open=False
     pass
-
+#open=False
 if open:
     if arduino.is_open:
         print('Serial port to arduino is open')
@@ -71,7 +72,6 @@ def drive(signs, gains):
 
 stop()
 time.sleep(2)
-
 '''
 
 drive([1, 1, 1, 1], [254, 254, 254, 254])

@@ -24,8 +24,9 @@ def read_frame():
     return frame if ret else None
 
 def processForSending(frame):
-    frame=unwrap(frame)
     frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+    frame=unwrap(frame)
+    #frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
     frame=cv.resize(frame,(500,200))
     return(frame)
 
@@ -60,13 +61,19 @@ def unwrap(imgIn):
         return map_x, map_y
 
     #UNWARP
-    def unwarp(img, xmap, ymap):
-        output = cv.remap(img, xmap, ymap, cv.INTER_LINEAR)
+    def unwarp(_img, xmap, ymap):
+        
+        output = cv.remap(_img, xmap, ymap, cv.INTER_LINEAR)
         return output
     
-    img = imgIn
+
+    img=cv.resize(imgIn,None,fx=0.2,fy=0.2,interpolation=cv.INTER_LINEAR)
+
+    #img = imgIn
+    
     
     cropBlock=int((int(img.shape[1])-int(img.shape[0]))/2)
+    
     img=img[:,cropBlock:-cropBlock]
 
     #distance to the centre of the image
@@ -75,7 +82,7 @@ def unwrap(imgIn):
     #IMAGE CENTER
     Cx = img.shape[0]/2
     Cy = img.shape[1]/2
-
+    
     #RADIUS OUTER
     R =- Cx
 

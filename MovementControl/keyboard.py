@@ -17,6 +17,7 @@ Joystick can be difficult as they are less standardized
 
 def kill_robot(state):
     state['live']=0
+    motors.stop()
     print('terminating')
     return(state)
 
@@ -78,10 +79,11 @@ event_lut = {
 
 def action(keysdown,movementState):
     #print(keysdown)
-    for key in keysdown:
-        f_call=event_lut.get(key)
-        if callable(f_call):
-            movementState=f_call(movementState)
+    if movementState['live']==1:
+        for key in keysdown.copy():
+            f_call=event_lut.get(key[0])
+            if callable(f_call):
+                movementState=f_call(movementState)
     return(movementState)
     
 '''
