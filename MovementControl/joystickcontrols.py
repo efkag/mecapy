@@ -54,11 +54,11 @@ def turn(state,keyvalue):
     print('turning')
     if keyvalue < 128:
         print(state, 'turning left')
-        gain= int(np.interp(255-abs(keyvalue), [128, 254], [0, 254]))
+        gain= int(np.interp(255-abs(keyvalue), [128, 254], [0, 100]))
         motors.left([gain]*4)
     else:
         print(state, ' turning right')
-        gain=int(np.interp(abs(keyvalue), [128, 254], [0, 254]))
+        gain=int(np.interp(abs(keyvalue), [128, 254], [0, 100]))
         motors.right([gain]*4)
         
     return(state)

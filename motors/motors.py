@@ -66,7 +66,7 @@ def drive(signs, gains):
     mtrs[:4] = signs
     mtrs[4:8] = gains
     mtrs[8] = 255
-    print(mtrs)
+    #print(mtrs)
     if open:
         arduino.write(mtrs)
 

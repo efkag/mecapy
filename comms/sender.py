@@ -55,7 +55,7 @@ def sendImage(s,fs,frame,experimentState):
     try:
         #print('looking for heading')
         seg,add=s.recvfrom(2**16)
-        return(True)
+        return(seg)
 
     except:
         pass
