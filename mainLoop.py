@@ -111,7 +111,8 @@ if __name__=="__main__":
         movementState={'throttle':int(3000/2),'live':1}
         localCaptureShot=0;
         priorKeysDown=set()
-
+        prevtime=0
+        h=0
         #time=0main_thread
         while True:
             #z=timeit()
@@ -154,6 +155,7 @@ if __name__=="__main__":
                     # send one final image with the death signal
                     experimentState['live']=0
                     sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+
                     print('killing')
                     killQ.put(1)
 
@@ -170,22 +172,24 @@ if __name__=="__main__":
                     
                     
                     heading=sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-                    
-                    if heading==None:
-                        motors.forward([40]*4)
-
+                    print(heading)
 
                     if heading!=None:
-                        print(heading)
                         h=int(heading.decode("utf-8"))
                         gain=Pcontroller_.convert(h)
-                        print(gain)
-                        while abs(h)>6:
-                            if h<0:
-                                motors.right([gain]*4)
-                            if h>0:
-                                motors.left([gain]*4)
-                
+                        newtime=time.time()
+
+                        prevtime=newtime
+                    
+                        
+                        if h<0:
+                            motors.right([gain]*4)
+                        if h>0:
+                            motors.left([gain]*4)
+                            
+                        if abs(h)<=6:
+                            motors.forward([80]*4)
+
                 else:
                     # just stream the images
                     experimentState['record']=0
@@ -304,4 +308,6 @@ if __name__=="__main__":
             pass
             
         if k==1:
+            motors.stop()
+            time.sleep(2)
             sys.exit()

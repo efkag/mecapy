@@ -6,9 +6,16 @@ import os
 
 cam = cv.VideoCapture(0)
 #
+# must be one of the specified resolutions of the pixpro - see tech specs
+# picked lowest that was still spherical (1072x1072 was not)
+cam.set(3,1440)
+cam.set(4,1440)
+#cam.set(5,30)
 
-cam.set(3,360)
-cam.set(4,360)
+
+for i in range(0,10):
+    print('arg',i)
+    print(cam.get(i))
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -27,7 +34,7 @@ def processForSending(frame):
     frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
     frame=unwrap(frame)
     #frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
-    frame=cv.resize(frame,(500,200))
+    frame=cv.resize(frame,(120,25))
     return(frame)
 
 def record_frame(foldername,saveOriginal=False):
@@ -67,14 +74,13 @@ def unwrap(imgIn):
         return output
     
 
-    img=cv.resize(imgIn,None,fx=0.2,fy=0.2,interpolation=cv.INTER_LINEAR)
+    img=cv.resize(imgIn,None,fx=0.1,fy=0.1,interpolation=cv.INTER_LINEAR)
 
     #img = imgIn
-    
-    
-    cropBlock=int((int(img.shape[1])-int(img.shape[0]))/2)
-    
-    img=img[:,cropBlock:-cropBlock]
+
+    if img.shape[1] != img.shape[0]:
+        cropBlock=int((int(img.shape[1])-int(img.shape[0]))/2)
+        img=img[:,cropBlock:-cropBlock]
 
     #distance to the centre of the image
     offset=int(img.shape[0]/2)
@@ -97,9 +103,21 @@ def unwrap(imgIn):
     result = unwarp(img, xmap, ymap)
 
     return result
+'''
+
+start=time.time()
+running=0
 
 
-#while True:
-#    ret, frame = cam.read()
-#    cv.imshow("frame",frame)
-#    cv.waitKey(1)
+while True:
+    frame=read_frame()
+    frame=processForSending(frame)
+    cv.imshow("frame",frame)
+    cv.waitKey(1)
+    current=time.time()
+    dif=current-start
+    start=current
+    running+=dif
+    running=running/2
+    #print(running)
+'''

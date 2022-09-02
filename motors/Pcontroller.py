@@ -10,18 +10,33 @@ Uses a P controller to adjust gain relative to heading deviation
 
 class deg2gain():
     def __init__(self):
-        self.maxGain=100
-        self.minGain=40 # below this, the motors are operating too slow to gain any traction.
-        self.pFactor=0.2
+        self.maxGain=200
+        self.minGain=60 # below this, the motors are operating too slow to gain any traction.
+        self.pFactor=0.5
+        self.iFactor=0
+        self.dFactor=0
         self.acceptableHeading=6 #not sure if this is the right place really, but here for now
+        self.cumuError=0
+        self.lastError=0
+        self.startTime=time.time()
 
     # Formulated such that the setpoint is 0 degrees 
     # and that the error is the heading required to reach 0 degrees
     # i.e the difference between 0 and heading given at the minimum
 
     def P_controller(self,degError):
-        gain=self.pFactor*abs(degError)
-        return(int(np.interp(abs(gain), [0, self.pFactor*254], [self.minGain, self.maxGain])))
+        currenttime=time.time()
+        difftime=currenttime-self.startTime
+        
+        self.cumuError=self.cumuError+abs(degError)*difftime
+        self.rateError=(degError-self.lastError)/difftime
+        
+        gain=self.pFactor*abs(degError)+self.iFactor*self.cumuError+self.dFactor*self.rateError
+        
+        
+        self.lastError=degError
+        self.startTime=currenttime
+        return(int(np.interp(abs(gain), [0, 254], [self.minGain, self.maxGain])))
 
     def convert(self,degError):
         if abs(degError)>self.acceptableHeading:
@@ -37,8 +52,8 @@ class deg2gain():
             else:
                 gain=self.minGain
                 
-            print('de',degError)
-            print('g',gain)
+            #print('de',degError)
+            #print('g',gain)
         else:
             gain=0
         return(gain)

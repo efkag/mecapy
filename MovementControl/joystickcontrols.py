@@ -39,14 +39,16 @@ def kill_robot(state,keyvalue):
     print('terminating')
     return(state)
 
+##### ALOT OF NUMBERS HERE THAT NEED TO BE IN A CONFIG
+
 def power(state,keyvalue):
     #print(state, ' motor gain' )
     print(keyvalue)
     if keyvalue < 128:
-        gain=int(np.interp(255-abs(keyvalue), [128, 254], [0, 254]))
+        gain=int(np.interp(255-abs(keyvalue), [128, 254], [0, 125]))
         motors.forward([gain]*4)
     else:
-        print('back', int(np.interp(abs(keyvalue), [128, 254], [0, 254])))
+        print('back', int(np.interp(abs(keyvalue), [128, 254], [0, 125])))
 
     return(state)
 
@@ -54,11 +56,11 @@ def turn(state,keyvalue):
     print('turning')
     if keyvalue < 128:
         print(state, 'turning left')
-        gain= int(np.interp(255-abs(keyvalue), [128, 254], [0, 100]))
+        gain= int(np.interp(255-abs(keyvalue), [128, 254], [0, 80]))
         motors.left([gain]*4)
     else:
         print(state, ' turning right')
-        gain=int(np.interp(abs(keyvalue), [128, 254], [0, 100]))
+        gain=int(np.interp(abs(keyvalue), [128, 254], [0, 80]))
         motors.right([gain]*4)
         
     return(state)

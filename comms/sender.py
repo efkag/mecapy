@@ -52,13 +52,20 @@ class FrameSegment(object):
 def sendImage(s,fs,frame,experimentState):
     frame=camera.processForSending(frame)
     fs.udp_frame(frame,experimentState)
-    try:
-        #print('looking for heading')
-        seg,add=s.recvfrom(2**16)
-        return(seg)
+    if experimentState['mode']==2:
 
-    except:
-        pass
+        try:
+            seg,add=s.recvfrom(2**16)
+            print(seg)
+            return(seg)
+        except:
+            seg=None
+        #return(seg)
+    else:
+        return(None)
+
+    #except:
+        #pass
 
 
 def createSocket(port=50001,addr="192.168.1.14"): #"192.168.1.89"
