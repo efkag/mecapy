@@ -39,6 +39,9 @@ def test():
 
 def forward(gains):
     drive([1,1,1,1],gains)
+    
+def back(gains):
+    drive([0,0,0,0],gains)
 
 def left(gains):
     drive([0,1,0,1],gains)

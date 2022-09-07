@@ -10,12 +10,12 @@ Uses a P controller to adjust gain relative to heading deviation
 
 class deg2gain():
     def __init__(self):
-        self.maxGain=200
-        self.minGain=60 # below this, the motors are operating too slow to gain any traction.
+        self.maxGain=180
+        self.minGain=42 # below this, the motors are operating too slow to gain any traction.
         self.pFactor=0.5
         self.iFactor=0
         self.dFactor=0
-        self.acceptableHeading=6 #not sure if this is the right place really, but here for now
+        self.acceptableHeading=3 #not sure if this is the right place really, but here for now
         self.cumuError=0
         self.lastError=0
         self.startTime=time.time()
@@ -33,7 +33,7 @@ class deg2gain():
         
         gain=self.pFactor*abs(degError)+self.iFactor*self.cumuError+self.dFactor*self.rateError
         
-        
+        gain
         self.lastError=degError
         self.startTime=currenttime
         return(int(np.interp(abs(gain), [0, 254], [self.minGain, self.maxGain])))

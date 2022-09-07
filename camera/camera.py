@@ -34,6 +34,7 @@ def processForSending(frame):
     frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
     frame=unwrap(frame)
     #frame=cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+    frame=frame[60:,:]
     frame=cv.resize(frame,(120,25))
     return(frame)
 
@@ -74,7 +75,7 @@ def unwrap(imgIn):
         return output
     
 
-    img=cv.resize(imgIn,None,fx=0.1,fy=0.1,interpolation=cv.INTER_LINEAR)
+    img=cv.resize(imgIn,None,fx=0.25,fy=0.25,interpolation=cv.INTER_LINEAR)
 
     #img = imgIn
 
@@ -103,8 +104,8 @@ def unwrap(imgIn):
     result = unwarp(img, xmap, ymap)
 
     return result
-'''
 
+"""
 start=time.time()
 running=0
 
@@ -120,4 +121,4 @@ while True:
     running+=dif
     running=running/2
     #print(running)
-'''
+"""

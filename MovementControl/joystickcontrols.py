@@ -19,6 +19,9 @@ print(inputs.devices.gamepads)
 driving_state = True
 pause_state = False
 
+deadzone=10
+maxGain=125
+
 def reset(state,keyvalue):
     print('stop the mmotors')
     return(state)
@@ -42,24 +45,55 @@ def kill_robot(state,keyvalue):
 ##### ALOT OF NUMBERS HERE THAT NEED TO BE IN A CONFIG
 
 def power(state,keyvalue):
-    #print(state, ' motor gain' )
-    print(keyvalue)
-    if keyvalue < 128:
-        gain=int(np.interp(255-abs(keyvalue), [128, 254], [0, 125]))
-        motors.forward([gain]*4)
+    
+    if keyvalue[0]>(128-deadzone) and keyvalue[0]<(128+deadzone):
+        return(turn(state,keyvalue[1]))
+    if keyvalue[1]>(128-deadzone) and keyvalue[1]<(128+deadzone):
+        return(forward(state,keyvalue[0]))
+        
+    if keyvalue[0]<128:
+        drive=1
     else:
-        print('back', int(np.interp(abs(keyvalue), [128, 254], [0, 125])))
+        drive=0
+    
+    forwardgain=calcForwardGain(keyvalue[0])
+    
+    if keyvalue[1]<(128-deadzone):
+        turngain=int(np.interp(255-abs(keyvalue[1]), [128, 254], [0, 125]))
+        motors.drive([drive,drive,drive,drive],[forwardgain,turngain,forwardgain,turngain])
+
+        
+    elif keyvalue[1]>(128+deadzone):
+        turngain=int(np.interp(abs(keyvalue[1]), [128, 254], [0, 125]))
+        motors.drive([drive,drive,drive,drive],[turngain,forwardgain,turngain,forwardgain])
+    
 
     return(state)
 
-def turn(state,keyvalue):
-    print('turning')
+def calcForwardGain(keyvalue):
     if keyvalue < 128:
-        print(state, 'turning left')
+        gain=int(np.interp(255-abs(keyvalue), [128, 254], [0, maxGain]))
+    else:
+        gain=int(np.interp(abs(keyvalue), [128, 254], [0, maxGain]))
+    return(gain)
+    
+def forward(state,keyvalue):
+    if keyvalue < 128:
+        gain=calcForwardGain(keyvalue)
+        motors.forward([gain]*4)
+    else:
+        gain=calcForwardGain(keyvalue)
+        motors.back([gain]*4)
+    return(state)
+
+def turn(state,keyvalue):
+    #print('turning')
+    if keyvalue < 128:
+        #print(state, 'turning left')
         gain= int(np.interp(255-abs(keyvalue), [128, 254], [0, 80]))
         motors.left([gain]*4)
     else:
-        print(state, ' turning right')
+        #print(state, ' turning right')
         gain=int(np.interp(abs(keyvalue), [128, 254], [0, 80]))
         motors.right([gain]*4)
         
@@ -79,28 +113,52 @@ event_lut = {
     'ABS_Z' : turn,
     'ABS_RZ' : None,
     'ABS_X' : None,
-    'ABS_Y' : power,
+    'ABS_Y' : forward,
     'ABS_RX' : None,
     'ABS_RY' : None,
     'ABS_HAT0X': None,
     'ABS_HAT0Y': None,
+    'TOT':power,
 }
 
 '''
+keystatus={
+    "ABS_Y":128, #left analog, front to back
+    "ABS_Z":128 # right analog, left to right
+    }
+
+
+def updateKeyStatus(event):
+    if event.ev_type=='Absolute' or event.ev_type=='Key':
+        keystatus[event.code]=event.state
+    print(keystatus)
 while True:
     events = inputs.get_gamepad()
     for event in events:
-        print(event.ev_type, event.code, event.state)
-        f_call = event_lut.get(event.code)
-        if callable(f_call):
-            f_call(event.state)
+        updateKeyStatus(event)
+        #print(event.ev_type, event.code, event.state)
+        #f_call = event_lut.get(event.code)
+        #if callable(f_call):
+            #f_call(event.state)
 '''
 
+def keys2commands(keysdown):
+    commands=keysdown.copy()
+    if 'ABS_Y' in commands and 'ABS_Z' in commands:
+        commands['TOT']=[keysdown['ABS_Y'],keysdown['ABS_Z']]
+        commands.pop('ABS_Y')
+        commands.pop('ABS_Z')
+    return(commands)
+        
+    
+
 def action(keysdown,movementState):
-    #print(keysdown)
     if movementState['live']==1:
-        for key in keysdown.copy():
-            f_call=event_lut.get(key[0])
+        commands=keys2commands(keysdown)
+        #print(commands)
+        for command in commands:
+            #print(command)
+            f_call=event_lut.get(command)
             if callable(f_call):
-                movementState=f_call(movementState,key[1])
+                movementState=f_call(movementState,commands[command])
     return(movementState)

@@ -56,7 +56,7 @@ def sendImage(s,fs,frame,experimentState):
 
         try:
             seg,add=s.recvfrom(2**16)
-            print(seg)
+            #print(seg)
             return(seg)
         except:
             seg=None
