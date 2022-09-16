@@ -22,7 +22,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 if cam.isOpened():
 	print('Camera is open')
-    
+
 else:
 	raise RuntimeError('Camera is off')
 
@@ -43,7 +43,7 @@ def record_frame(foldername,saveOriginal=False):
     if saveOriginal==False:
         frame = processForSending(frame)
     folder=os.path.join(dir_path,foldername)
-    
+
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -55,13 +55,13 @@ def record_frame(foldername,saveOriginal=False):
 def unwrap(imgIn):
     #MAPPING
     def buildMap(Wd, Hd, R, Cx, Cy):
-                    
+
         ys=np.arange(0,int(Hd))
         xs=np.arange(0,int(Wd))
-        
+
         rs=np.zeros((len(xs),len(ys)))
         rs=R*ys/Hd
-        
+
         thetas=np.expand_dims(((xs-offset)/Wd)*2*np.pi,1)
 
         map_x=np.transpose(Cx+(rs)*np.sin(thetas)).astype(np.float32)
@@ -70,10 +70,10 @@ def unwrap(imgIn):
 
     #UNWARP
     def unwarp(_img, xmap, ymap):
-        
+
         output = cv.remap(_img, xmap, ymap, cv.INTER_LINEAR)
         return output
-    
+
 
     img=cv.resize(imgIn,None,fx=0.25,fy=0.25,interpolation=cv.INTER_LINEAR)
 
@@ -89,7 +89,7 @@ def unwrap(imgIn):
     #IMAGE CENTER
     Cx = img.shape[0]/2
     Cy = img.shape[1]/2
-    
+
     #RADIUS OUTER
     R =- Cx
 
