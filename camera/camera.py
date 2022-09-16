@@ -1,4 +1,5 @@
 import cv2 as cv
+<<<<<<< HEAD
 import numpy as np
 
 import time
@@ -21,10 +22,10 @@ for i in range(0,10):
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 if cam.isOpened():
-	print('Camera is open')
+    print('Camera is open')
     
 else:
-	raise RuntimeError('Camera is off')
+    raise RuntimeError('Camera is off')
 
 def read_frame():
     ret, frame = cam.read()
@@ -122,3 +123,10 @@ while True:
     running=running/2
     #print(running)
 """
+=======
+	ret, frame = cam.read()
+	return frame if ret else None
+
+#frame = read_frame()
+#cv.imwrite('test.png', frame)
+>>>>>>> origin/vicon
