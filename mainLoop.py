@@ -26,6 +26,7 @@ from MovementControl import keyboard
 from MovementControl import joystickcontrols
 from motors import Pcontroller
 from motors import motors
+from vicon import vicon
 
 
 #from MovementControl import keyboardcontrols
@@ -47,6 +48,7 @@ if __name__=="__main__":
     frameQ=Queue()
     movementStateQ=Queue()
     transformQ=Queue()
+    viconStatus=Queue()
     
     
     def checkCaptureShotCondition(captureShot,keysDown,priorKeysDown):
@@ -90,10 +92,12 @@ if __name__=="__main__":
         sendSocket,frameHolder=sender.createSocket()
         captureShot=0
         Pcontroller_=Pcontroller.deg2gain()
-
         
         modes=['manual','train','test']
-        experimentState={'live':1,'mode':modes.index(mode),'record':0}
+        
+        
+        experimentState={'live':1,'mode':modes.index(mode),'record':0,'recordTransform':viconStatus.get()}
+        print(experimentState)
         
         movementState={'throttle':int(3000/2),'live':1}
         localCaptureShot=0;
@@ -103,6 +107,7 @@ if __name__=="__main__":
         h=0
         #time=0main_thread
         while True:
+            
             #z=timeit()
             #time=(time+z)/2
             #print(time)
@@ -123,27 +128,30 @@ if __name__=="__main__":
 
             if inputDevice=='joystick':
                 movementState=joystickcontrols.action(keysDown,movementState)
-            
                 
 
+            if (frameQ.empty()==False and transformQ.empty()==False):
 
-            if frameQ.empty()==False:
                 frame=frameQ.get(block=False)
+                
 
+                #print('getting transform')
+                transform=transformQ.get(block=False)
+                #print(transform)
 
                 if movementState['live']==0:
                     # send one final image with the death signal
                     if experimentState['live']!=0:
                         print('killing')
                         experimentState['live']=0
-                    sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+                    sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
                     killQ.put(1)
 
                 elif (mode=='manual' and captureShot>=1) or (mode=='train'):
                     # stream and save image
                     experimentState['record']=1
                     
-                    sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+                    sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
                     captureShot=-1
                     print('save, reset capture shot',captureShot)
                     
@@ -151,15 +159,15 @@ if __name__=="__main__":
                     #print(experimentState['mode'])
                     
                     
-                    heading=sender.sendImage(sendSocket,frameHolder,frame,experimentState)
+                    heading=sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
                     #print(heading)
 
                     if heading!=None:
                         h=int(heading.decode("utf-8"))
                         gain=Pcontroller_.convert(h)
                         newtime=time.time()
-                        
-  
+                        viconStatus.put(0)
+
                         drive=1
                         
                         prevtime=newtime
@@ -202,18 +210,14 @@ if __name__=="__main__":
                 else:
                     # just stream the images
                     experimentState['record']=0
-                    sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-                
-                
-
+                    sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
                     
-                
-
-                
-
 
     mode=sys.argv[1]
-    #folder=sys.argv[2]
+    try:
+        useVicon=sys.argv[2]
+    except:
+        useVicon=1
 
     def keyinputLoop():
         keysDown={}
@@ -249,10 +253,35 @@ if __name__=="__main__":
         while True:
             frame=camera.read_frame()
             #frame=np.random.rand(100,20)*255
+            #print(frame)
             frameQ.put(frame)
             
     def getTransform():
-        transformQ.put(transform)
+        if useVicon==1:
+            try:
+                vicsoc=vicon.CreateSocket()
+                viconStatus.put(1)
+                bound=True
+            except:
+                bound=False
+                print("could not find vicon, operating without")
+                viconStatus.put(0)
+        else:
+            print("Non Vicon Option Selected")
+            viconStatus.put(0)
+            bound=False
+        
+        print('bound',str(bound))
+
+        while True:
+            if bound==1:
+                transform=vicon.ReadTransform(vicsoc)
+            else:
+                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
+            if transform!=None:
+                transformQ.queue.clear()
+                transformQ.put(transform)
+                #print(transform)
 
     def startThread(threadTarget):
         thread=Thread(target=threadTarget)

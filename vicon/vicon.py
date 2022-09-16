@@ -2,6 +2,7 @@ import socket
 import struct
 import sys
 from unittest.util import unorderable_list_difference
+import numpy as np
 
 UDP_IP = ''
 UDP_PORT = 51001
@@ -27,22 +28,23 @@ That's followed by that many objects, each of which consist of:
 """
 
 
-soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-try:
+#print(sys.byteorder)
+
+def CreateSocket():
+
+    soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    soc.setblocking(0)
     soc.bind((UDP_IP, UDP_PORT))
     print('bound')
-except socket.error as e:
-    print(e)
 
-print(sys.byteorder)
-def unpack_helper(data):
+    return(soc)
 
+def UnpackTransform(data):
+
+    # TODO future proof for other boards
     headerfmt='<LB'
     restfmt='<xH24s6d'
-
-    headerfmt='=B'
-    restfmt='=xH24s6d'
 
 
     size = struct.calcsize(restfmt)
@@ -51,22 +53,30 @@ def unpack_helper(data):
 
     for i in range(0,res[1]):
         res=struct.unpack(restfmt,data[headersize+i*(size):headersize+size+i*(size)])
-        print(res)
 
     transform=res[-6:]
+    #print(transform)
     return(transform)
 
     #return struct.unpack(fmt, data[6:6+size])
 
 
-while True:
+def ReadTransform(vicsoc):
     try:
-        data, addr = soc.recvfrom(1024)
-        print(unpack_helper(data))
+        data,addr=vicsoc.recvfrom(1024)
+        transform=UnpackTransform(data)
+        transform=np.array(transform)
+
     except:
-        print('nothing')
+        transform=None
 
+    return(transform)
 
+"""
+soc=CreateSocket()
+while True:
 
-
-
+    data, addr = soc.recvfrom(1024)
+    print(data)
+    print(UnpackTransform(data))
+"""

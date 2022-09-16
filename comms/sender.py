@@ -27,7 +27,7 @@ class FrameSegment(object):
         self.port = port
         self.addr = addr
 
-    def udp_frame(self, img, experimentState):
+    def udp_frame(self, img,transform, experimentState):
         """ 
         Compress image and Break down
         into data segments 
@@ -35,7 +35,11 @@ class FrameSegment(object):
 
 
         compress_img = cv2.imencode('.jpg', img)[1]
-        dat =experimentState['live'].to_bytes(1,byteorder='big')+ experimentState['record'].to_bytes(1,byteorder='big')+experimentState['mode'].to_bytes(1,byteorder='big')+compress_img.tobytes()
+        transformbytes=np.array(transform).tobytes()
+
+        dat =experimentState['live'].to_bytes(1,byteorder='big')+ experimentState['record'].to_bytes(1,byteorder='big')+experimentState['mode'].to_bytes(1,byteorder='big')+transformbytes+compress_img.tobytes()
+        
+
 
         size = len(dat)
         count = math.ceil(size/(self.MAX_IMAGE_DGRAM))
@@ -49,9 +53,10 @@ class FrameSegment(object):
             count -= 1
 
 
-def sendImage(s,fs,frame,experimentState):
+def sendImage(s,fs,frame,transform,experimentState):
     frame=camera.processForSending(frame)
-    fs.udp_frame(frame,experimentState)
+    #print(transform)
+    fs.udp_frame(frame,transform,experimentState)
     if experimentState['mode']==2:
 
         try:

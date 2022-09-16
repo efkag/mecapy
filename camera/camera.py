@@ -1,5 +1,4 @@
 import cv2 as cv
-<<<<<<< HEAD
 import numpy as np
 
 import time
@@ -123,10 +122,3 @@ while True:
     running=running/2
     #print(running)
 """
-=======
-	ret, frame = cam.read()
-	return frame if ret else None
-
-#frame = read_frame()
-#cv.imwrite('test.png', frame)
->>>>>>> origin/vicon
