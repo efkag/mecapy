@@ -131,12 +131,13 @@ if __name__=="__main__":
                 
 
             if (frameQ.empty()==False and transformQ.empty()==False):
-
                 frame=frameQ.get(block=False)
                 
 
                 #print('getting transform')
                 transform=transformQ.get(block=False)
+                transformQ.queue.clear()
+                frameQ.queue.clear()
                 #print(transform)
 
                 if movementState['live']==0:
@@ -158,7 +159,7 @@ if __name__=="__main__":
                 elif (mode=='test'):
                     #print(experimentState['mode'])
                     
-                    
+                    print(transform)
                     heading=sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
                     #print(heading)
 
@@ -166,7 +167,7 @@ if __name__=="__main__":
                         h=int(heading.decode("utf-8"))
                         gain=Pcontroller_.convert(h)
                         newtime=time.time()
-                        viconStatus.put(0)
+                        
 
                         drive=1
                         
@@ -211,7 +212,7 @@ if __name__=="__main__":
                     # just stream the images
                     experimentState['record']=0
                     sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
-                    
+
 
     mode=sys.argv[1]
     try:
@@ -250,10 +251,36 @@ if __name__=="__main__":
 
 
     def getCameraFrames():
+        if useVicon==1:
+            try:
+                vicsoc=vicon.CreateSocket()
+                viconStatus.put(1)
+                bound=True
+            except:
+                bound=False
+                print("could not find vicon, operating without")
+                viconStatus.put(0)
+                
+        else:
+            print("Non Vicon Option Selected")
+            viconStatus.put(0)
+            bound=False
+
+        
+        
+        
         while True:
             frame=camera.read_frame()
             #frame=np.random.rand(100,20)*255
             #print(frame)
+            if bound==1:
+                transform=vicon.ReadTransform(vicsoc)
+            else:
+                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
+            #if transform!=None:
+            #transform=np.array(transform)
+            
+            transformQ.put(transform)
             frameQ.put(frame)
             
     def getTransform():
@@ -271,16 +298,16 @@ if __name__=="__main__":
             viconStatus.put(0)
             bound=False
         
-        print('bound',str(bound))
+
 
         while True:
-            if bound==1:
-                transform=vicon.ReadTransform(vicsoc)
-            else:
-                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
-            if transform!=None:
-                transformQ.queue.clear()
-                transformQ.put(transform)
+            #if bound==1:
+                #transform=vicon.ReadTransform(vicsoc)
+            #else:
+            transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
+            #if transform!=None:
+            transform=np.array(transform)
+            transformQ.put(transform)
                 #print(transform)
 
     def startThread(threadTarget):
@@ -291,7 +318,7 @@ if __name__=="__main__":
 
     keyinputThread=startThread(keyinputLoop)
     cameraThread=startThread(getCameraFrames)
-    viconThread=startThread(getTransform)
+    #viconThread=startThread(getTransform)
 
     main_thread=Thread(target=mainloop)
     main_thread.daemon=True

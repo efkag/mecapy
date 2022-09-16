@@ -8,6 +8,7 @@ import struct
 import math
 import os
 import sys
+import cv2 as cv
 
 path = os.path.join(os.path.dirname(__file__), os.pardir)
 fwd = os.path.dirname(__file__)
@@ -37,6 +38,7 @@ class FrameSegment(object):
         compress_img = cv2.imencode('.jpg', img)[1]
         transformbytes=np.array(transform).tobytes()
 
+
         dat =experimentState['live'].to_bytes(1,byteorder='big')+ experimentState['record'].to_bytes(1,byteorder='big')+experimentState['mode'].to_bytes(1,byteorder='big')+experimentState['recordTransform'].to_bytes(1,byteorder='big')+transformbytes+compress_img.tobytes()
         
 
@@ -65,6 +67,7 @@ def sendImage(s,fs,frame,transform,experimentState):
             return(seg)
         except:
             seg=None
+        print(seg)
         #return(seg)
     else:
         return(None)

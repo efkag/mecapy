@@ -11,7 +11,7 @@ Uses a P controller to adjust gain relative to heading deviation
 class deg2gain():
     def __init__(self):
         self.maxGain=180
-        self.minGain=42 # below this, the motors are operating too slow to gain any traction.
+        self.minGain=50 # below this, the motors are operating too slow to gain any traction.
         self.pFactor=0.5
         self.iFactor=0
         self.dFactor=0
