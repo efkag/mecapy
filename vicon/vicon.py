@@ -25,25 +25,27 @@ That's followed by that many objects, each of which consist of:
 8 byte double - roll
 
 """
-
-
-soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-try:
-    soc.bind((UDP_IP, UDP_PORT))
-    print('bound')
-except socket.error as e:
-    print(e)
-
 print(sys.byteorder)
-def unpack_helper(data):
+
+def CreateSocket():
+
+    soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        soc.bind((UDP_IP, UDP_PORT))
+        print('bound')
+    except socket.error as e:
+        print(e)
+    return(soc)
+
+
+def UnpackTransform(data):
 
     headerfmt='<LB'
     restfmt='<xH24s6d'
 
     headerfmt='=B'
     restfmt='=xH24s6d'
-
 
     size = struct.calcsize(restfmt)
     headersize=struct.calcsize(headerfmt)
@@ -56,17 +58,11 @@ def unpack_helper(data):
     transform=res[-6:]
     return(transform)
 
-    #return struct.unpack(fmt, data[6:6+size])
-
-
-while True:
+def ReadTransform(vicsoc):
     try:
-        data, addr = soc.recvfrom(1024)
-        print(unpack_helper(data))
+        data, addr = vicsoc.recvfrom(1024)
+        transform=UnpackTransform(data)
     except:
-        print('nothing')
-
-
-
-
+        transform=[]
+    return(transform)
 
