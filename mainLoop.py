@@ -46,48 +46,35 @@ if __name__=="__main__":
     killQ=Queue()
     frameQ=Queue()
     movementStateQ=Queue()
+    transformQ=Queue()
     
     
     def checkCaptureShotCondition(captureShot,keysDown,priorKeysDown):
-        kl=list(keysDown.copy())
-        priorkl=list(priorKeysDown.copy())
-        
-        
-        ### THIS WILL KEEP RECORDING IF HELD DOWN - TODO-replicate the joystick where it waits for release
-        if inputDevice=='keyboard':
-            code='KEY_SPACE'
-            
-            e=[e for e in kl if e[0]==code]
-                
-            if len(e)!=0:
-                captureShot=captureShot+1
-            else:
-                captureShot=0
-            #print(captureShot)
+        kd=(keysDown.copy())
+        pkd=(priorKeysDown.copy())
 
 
          ### THIS WILL WAIT FOR RELEASE
         if inputDevice=='joystick':
             code='BTN_EAST'
             
-
-            
-            e=[e for e in kl if e[0]==code]
-            pe=[e for e in priorkl if e[0]==code]
-
-            
-            if len(pe)!=0 and len(e)!=0:
-
-                if pe[0][1]<e[0][1]:
-                    print('pressed')
+            # initial conditions (key has not yet been pressed and released)
+            if code in kd and (code not in pkd):
+                if kd[code]!=0:
                     captureShot=1
-
-                    
-            # initial conditions?
-            if len(pe)==0 and len(e)!=0:
-                if captureShot==0:
-                    captureShot=captureShot+1
-                    print('code present',captureShot)
+                else:
+                    captureShot=0
+            else:
+                if (code in kd) and (code in pkd):
+                    if kd[code]!=pkd[code]:
+                        if kd[code]!=0 and pkd[code]==0: 
+                            captureShot=1
+                        # if it hasnt been caught on the way down, catch on the way up
+                        elif captureShot==0 and kd[code]==0 and pkd[code]==1:
+                            captureShot=1
+                        else:
+                            captureShot=0
+                        
         return(captureShot)
 
     def tryq(q):
@@ -110,7 +97,8 @@ if __name__=="__main__":
         
         movementState={'throttle':int(3000/2),'live':1}
         localCaptureShot=0;
-        priorKeysDown=set()
+        priorKeysDown={}
+        keysDown={}
         prevtime=0
         h=0
         #time=0main_thread
@@ -119,32 +107,24 @@ if __name__=="__main__":
             #time=(time+z)/2
             #print(time)
             
-            
-            if inputDevice=='keyboard':
-                keysDown=tryq(keydownQ)
-                if 'n' in newkeysDown:
-                    keysDown=keysDown
-                else:
-                    keysDown=newkeysDown
+
+            try:
+                nkd=keydownQ.get(block=False)
                 
-            else:
-                try:
-                    keysDown=keydownQ.get(block=False)
-                except:
-                    keysDown=set()
-                    pass
-                    
+                keysDown=nkd
+                
+            except:
+                pass
 
-            if len(list(keysDown))!=0:
+                
 
-                captureShot=checkCaptureShotCondition(captureShot,keysDown,priorKeysDown)
-                #print(keysDown)
-                if inputDevice=='keyboard':
-                    movementState=keyboard.action(keysDown,movementState)
-                if inputDevice=='joystick':
-                    movementState=joystickcontrols.action(keysDown,movementState)
-                priorKeysDown=keysDown
-                    
+            captureShot=checkCaptureShotCondition(captureShot,keysDown,priorKeysDown)
+            priorKeysDown=keysDown.copy()
+
+            if inputDevice=='joystick':
+                movementState=joystickcontrols.action(keysDown,movementState)
+            
+                
 
 
             if frameQ.empty()==False:
@@ -153,10 +133,10 @@ if __name__=="__main__":
 
                 if movementState['live']==0:
                     # send one final image with the death signal
-                    experimentState['live']=0
+                    if experimentState['live']!=0:
+                        print('killing')
+                        experimentState['live']=0
                     sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-
-                    print('killing')
                     killQ.put(1)
 
                 elif (mode=='manual' and captureShot>=1) or (mode=='train'):
@@ -164,7 +144,7 @@ if __name__=="__main__":
                     experimentState['record']=1
                     
                     sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-                    captureShot=0
+                    captureShot=-1
                     print('save, reset capture shot',captureShot)
                     
                 elif (mode=='test'):
@@ -172,24 +152,53 @@ if __name__=="__main__":
                     
                     
                     heading=sender.sendImage(sendSocket,frameHolder,frame,experimentState)
-                    print(heading)
+                    #print(heading)
 
                     if heading!=None:
                         h=int(heading.decode("utf-8"))
                         gain=Pcontroller_.convert(h)
                         newtime=time.time()
-
-                        prevtime=newtime
-                    
                         
-                        if h<0:
-                            motors.right([gain]*4)
-                        if h>0:
-                            motors.left([gain]*4)
+  
+                        drive=1
+                        
+                        prevtime=newtime
+                        
+                        forwardgain=80
+                        #print('fg',forwardgain)
+                        #print('tg',gain)
+                        fg=forwardgain-gain
+                        #print(fg)
+                        if fg<gain:
+                            fg=gain
+                        #print(fg)
+                        if abs(h)>10:
                             
-                        if abs(h)<=6:
-                            motors.forward([80]*4)
+                            print('Rotating on the spot')
+                            
+                            if h<0:
+                                motors.right([gain]*4)
+                                #print('B turning left')
+                            if h>0:
+                                #print('B turning right')
+                                motors.left([gain]*4)
+                                
+                        else:
+                            if h<0:
+                                print('G turning l')
+                                motors.drive([1,1,1,1],[60+gain,60,60+gain,60])
+                            if h>0:
+                                print('G turning r')
+                                motors.drive([1,1,1,1],[60,60+gain,60,60+gain])
+                            if h==0:
+                                print('forward')
+                                motors.drive([drive,drive,drive,drive],[forwardgain,forwardgain,forwardgain,forwardgain])
+                            
+                                
+                                
+                                
 
+    
                 else:
                     # just stream the images
                     experimentState['record']=0
@@ -208,13 +217,8 @@ if __name__=="__main__":
 
     def keyinputLoop():
         keysDown={}
-        keysDown=set()
-        
         keydownQ.put(keysDown)
-        
-        if inputDevice=='keyboard':
-            print(inputs.devices.keyboards) 
-            keyboardIdx=1
+
         
         if inputDevice=='joystick':
             print(inputs.devices.gamepads)
@@ -222,17 +226,9 @@ if __name__=="__main__":
 
         while True:
             try:
-                # note: this needsyss you to change the input library to pick the keyboard based on an index
-                # atm the library only selects the first keyboard device, problem if multiple keyboards connected
-                if inputDevice=='keyboard':
-                    events = inputs.get_key(keyboardIdx=keyboardIdx)
-                else:
-                    events = inputs.get_gamepad(gamepadidx=gamepadidx)
+                events = inputs.get_gamepad(gamepadidx=gamepadidx)
             except:
-                if inputDevice=='keyboard':
-                    events=inputs.get_key()
-                else:
-                    events=inputs.get_gamepad()
+                events=inputs.get_gamepad()
             #print(event.ev_type,event.code,event.state)
             
             
@@ -241,42 +237,10 @@ if __name__=="__main__":
                 if event.ev_type=='Key' or event.ev_type=='Absolute':
                     
                     if inputDevice=='joystick':
-                        keysDown=set() # gets reset every time
-                        keysDown.add((event.code,event.state))
+                        keysDown[event.code]=event.state
+
                         
-                        
-                    if inputDevice=='keyboard':
-                        
-                        
-                        if event.state!=0:
-                            #present=[1 if e[0]==event.code else 0 for e in list(keysDown)]
-                            #if sum(present)!=0:
-                                #[print(e) for e in list(keysDown) if e[0]==event.code]
-                                #[keysDown.remove(e) for e in list(keysDown) if e[0]==event.code]
-                                
-                            if len(list(keysDown))==0:
-                                keysDown.add((event.code,event.state))
-                            
-                            else:
-                                for e in list(keysDown):
-                                    if e[0]==event.code:
-                                        keysDown.remove(e)
-                                        keysDown.add((event.code,event.state))
-                                        #print(keysDown)
-                            
-                            #print(keysDown)
-                        else:
-                            
-                            
-                            for e in list(keysDown):
-                                if e[0]==event.code:
-                                    print('r')
-                                    keysDown.remove(e)
-                                    #print(keysDown)
-                            #[keysDown.remove(e) for e in list(keysDown) if e[0]==event.code]
-                            #print(keysDown)
-                        
-                        
+            
             #print(keysDown)            
             keydownQ.put(keysDown)
 
@@ -286,6 +250,9 @@ if __name__=="__main__":
             frame=camera.read_frame()
             #frame=np.random.rand(100,20)*255
             frameQ.put(frame)
+            
+    def getTransform():
+        transformQ.put(transform)
 
     def startThread(threadTarget):
         thread=Thread(target=threadTarget)
@@ -295,6 +262,7 @@ if __name__=="__main__":
 
     keyinputThread=startThread(keyinputLoop)
     cameraThread=startThread(getCameraFrames)
+    viconThread=startThread(getTransform)
 
     main_thread=Thread(target=mainloop)
     main_thread.daemon=True
