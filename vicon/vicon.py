@@ -3,6 +3,7 @@ import struct
 import sys
 from unittest.util import unorderable_list_difference
 import numpy as np
+import cv2 as cv
 
 UDP_IP = ''
 UDP_PORT = 51001
@@ -73,10 +74,18 @@ def ReadTransform(vicsoc):
     return(transform)
 
 """
+#Troubleshooting
 soc=CreateSocket()
+mapimg=np.zeros((200,200),np.uint8)
 while True:
 
-    data, addr = soc.recvfrom(1024)
-    print(data)
-    print(UnpackTransform(data))
+    transform=ReadTransform(soc)
+    if transform!=None:
+
+        x=int(np.interp(transform[0],(-4000,4000),(0,200)))
+        y=int(np.interp(transform[1],(-4000,4000),(0,200)))
+        mapimg[x,y]=255
+        cv.imshow('map',mapimg)
+        cv.waitKey(1)
+
 """

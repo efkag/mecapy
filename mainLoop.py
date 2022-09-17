@@ -20,7 +20,7 @@ import sys
 from comms import sender
 import time
 
-from queue import Queue
+from queue import Queue, LifoQueue
 
 from MovementControl import keyboard
 from MovementControl import joystickcontrols
@@ -45,9 +45,9 @@ if __name__=="__main__":
 
     keydownQ = Queue()
     killQ=Queue()
-    frameQ=Queue()
+    frameQ=LifoQueue()
     movementStateQ=Queue()
-    transformQ=Queue()
+    transformQ=LifoQueue()
     viconStatus=Queue()
     
     
@@ -105,6 +105,7 @@ if __name__=="__main__":
         keysDown={}
         prevtime=0
         h=0
+        mapimg=np.zeros((200,200),np.uint8)
         #time=0main_thread
         while True:
             
@@ -136,6 +137,11 @@ if __name__=="__main__":
 
                 #print('getting transform')
                 transform=transformQ.get(block=False)
+                #x=int(np.interp(transform[0],(-4000,4000),(0,200)))
+                #y=int(np.interp(transform[1],(-4000,4000),(0,200)))
+                #mapimg[x,y]=255
+                #cv.imshow('map',mapimg)
+                #cv.waitKey(1)
                 transformQ.queue.clear()
                 frameQ.queue.clear()
                 #print(transform)
@@ -246,11 +252,11 @@ if __name__=="__main__":
 
                         
             
-            #print(keysDown)            
+            #print(keysDown)            getTransform
             keydownQ.put(keysDown)
 
 
-    def getCameraFrames():
+    def getCameraFrames2():
         if useVicon==1:
             try:
                 vicsoc=vicon.CreateSocket()
@@ -266,6 +272,7 @@ if __name__=="__main__":
             viconStatus.put(0)
             bound=False
 
+        mapimg=np.zeros((200,200),np.uint8)
         
         
         
@@ -275,6 +282,10 @@ if __name__=="__main__":
             #print(frame)
             if bound==1:
                 transform=vicon.ReadTransform(vicsoc)
+                x=int(np.interp(transform[0],(-4000,4000),(0,200)))
+                plotTransform() # slow before being added to q
+
+                
             else:
                 transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
             #if transform!=None:
@@ -282,7 +293,22 @@ if __name__=="__main__":
             
             transformQ.put(transform)
             frameQ.put(frame)
-            
+    
+    def getCameraFrames():
+
+        while True:
+            frame=camera.read_frame()
+            if frame!=None:
+                frameQ.put(frame)
+
+        
+        
+    def plotTransform():
+        y=int(np.interp(transform[1],(-4000,4000),(0,200)))
+        mapimg[x,y]=255
+        cv.imshow('map',mapimg)
+        cv.waitKey(1)
+        
     def getTransform():
         if useVicon==1:
             try:
@@ -297,18 +323,15 @@ if __name__=="__main__":
             print("Non Vicon Option Selected")
             viconStatus.put(0)
             bound=False
-        
-
-
+            
         while True:
-            #if bound==1:
-                #transform=vicon.ReadTransform(vicsoc)
-            #else:
-            transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
-            #if transform!=None:
-            transform=np.array(transform)
-            transformQ.put(transform)
-                #print(transform)
+            if bound==1:
+                transform=vicon.ReadTransform(vicsoc)
+            else:
+                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
+                
+            if transform!=None:
+                transformQ.put(transform)
 
     def startThread(threadTarget):
         thread=Thread(target=threadTarget)
@@ -318,7 +341,7 @@ if __name__=="__main__":
 
     keyinputThread=startThread(keyinputLoop)
     cameraThread=startThread(getCameraFrames)
-    #viconThread=startThread(getTransform)
+    viconThread=startThread(getTransform)
 
     main_thread=Thread(target=mainloop)
     main_thread.daemon=True

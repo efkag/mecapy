@@ -37,7 +37,7 @@ class FrameSegment(object):
 
         compress_img = cv2.imencode('.jpg', img)[1]
         transformbytes=np.array(transform).tobytes()
-
+        
 
         dat =experimentState['live'].to_bytes(1,byteorder='big')+ experimentState['record'].to_bytes(1,byteorder='big')+experimentState['mode'].to_bytes(1,byteorder='big')+experimentState['recordTransform'].to_bytes(1,byteorder='big')+transformbytes+compress_img.tobytes()
         
