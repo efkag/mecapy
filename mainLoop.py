@@ -130,6 +130,16 @@ if __name__=="__main__":
             if inputDevice=='joystick':
                 movementState=joystickcontrols.action(keysDown,movementState)
                 
+            if movementState['live']==0:
+                # send one final, blank, image with the death signal
+                if experimentState['live']!=0:
+                    print('killing')
+                    experimentState['live']=0
+                
+                frame=np.zeros((1000,1000,3),np.uint8)
+                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
+                sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
+                killQ.put(1)
 
             if (frameQ.empty()==False and transformQ.empty()==False):
                 frame=frameQ.get(block=False)
@@ -146,15 +156,9 @@ if __name__=="__main__":
                 frameQ.queue.clear()
                 #print(transform)
 
-                if movementState['live']==0:
-                    # send one final image with the death signal
-                    if experimentState['live']!=0:
-                        print('killing')
-                        experimentState['live']=0
-                    sender.sendImage(sendSocket,frameHolder,frame,transform,experimentState)
-                    killQ.put(1)
 
-                elif (mode=='manual' and captureShot>=1) or (mode=='train'):
+
+                if (mode=='manual' and captureShot>=1) or (mode=='train'):
                     # stream and save image
                     experimentState['record']=1
                     
@@ -187,7 +191,7 @@ if __name__=="__main__":
                         if fg<gain:
                             fg=gain
                         #print(fg)
-                        if abs(h)>10:
+                        if abs(h)>0:
                             
                             print('Rotating on the spot')
                             
@@ -256,44 +260,6 @@ if __name__=="__main__":
             keydownQ.put(keysDown)
 
 
-    def getCameraFrames2():
-        if useVicon==1:
-            try:
-                vicsoc=vicon.CreateSocket()
-                viconStatus.put(1)
-                bound=True
-            except:
-                bound=False
-                print("could not find vicon, operating without")
-                viconStatus.put(0)
-                
-        else:
-            print("Non Vicon Option Selected")
-            viconStatus.put(0)
-            bound=False
-
-        mapimg=np.zeros((200,200),np.uint8)
-        
-        
-        
-        while True:
-            frame=camera.read_frame()
-            #frame=np.random.rand(100,20)*255
-            #print(frame)
-            if bound==1:
-                transform=vicon.ReadTransform(vicsoc)
-                x=int(np.interp(transform[0],(-4000,4000),(0,200)))
-                plotTransform() # slow before being added to q
-
-                
-            else:
-                transform=np.array([0.00,0.00,0.00,0.00,0.00,0.00])
-            #if transform!=None:
-            #transform=np.array(transform)
-            
-            transformQ.put(transform)
-            frameQ.put(frame)
-    
     def getCameraFrames():
 
         while True:

@@ -20,7 +20,7 @@ driving_state = True
 pause_state = False
 
 deadzone=10
-maxGain=125
+maxGain=130
 
 def reset(state,keyvalue):
     print('stop the mmotors')
